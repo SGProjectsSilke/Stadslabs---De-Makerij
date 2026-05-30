@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>De Makerij — Inzichtendashboard</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --g1: #2d6b27; --g2: #4a9042; --g3: #a8d5a2; --g4: #d4ead1; --gbg: #f3faf2;
+  --rood: #b02a2a; --oranje: #c96a0a; --blauw: #1a5276;
+  --tekst: #1a241a; --sub: #5a6a5a; --rand: #e0ece0; --bg: #eef3ee;
+}
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--tekst); line-height: 1.5; font-size: 14px; }
+
+/* HEADER */
+.hdr { background: var(--g1); color: white; padding: 28px 36px 24px; }
+.hdr-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+.hdr h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -.4px; }
+.hdr .sub { font-size: .78rem; opacity: .65; margin-top: 2px; }
+.badge { background: rgba(255,255,255,.18); border-radius: 20px; padding: 6px 14px; font-size: .76rem; font-weight: 600; white-space: nowrap; }
+.hdr-intro { margin-top: 16px; background: rgba(255,255,255,.1); border-radius: 8px; padding: 12px 16px; font-size: .84rem; line-height: 1.65; max-width: 860px; }
+.hdr-intro strong { color: #b8ebb5; }
+
+/* LAYOUT */
+.wrap { max-width: 1140px; margin: 0 auto; padding: 26px 20px 50px; }
+section { margin-bottom: 34px; }
+.sec-head { margin-bottom: 14px; }
+.sec-head h2 { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--g1); border-left: 4px solid var(--g2); padding-left: 9px; margin-bottom: 3px; }
+.sec-head p { font-size: .78rem; color: #888; padding-left: 13px; }
+
+/* CARDS */
+.card { background: white; border-radius: 11px; padding: 20px 22px; box-shadow: 0 1px 5px rgba(0,0,0,.06); }
+.card-title { font-size: .76rem; font-weight: 700; color: var(--g1); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.card-sub { font-size: .72rem; color: #aaa; margin-bottom: 14px; }
+
+/* KPI */
+.kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 13px; }
+.kpi { background: white; border-radius: 11px; padding: 17px 18px; box-shadow: 0 1px 5px rgba(0,0,0,.06); border-top: 4px solid var(--g2); }
+.kpi.warn { border-top-color: var(--oranje); }
+.kpi.alert { border-top-color: var(--rood); }
+.kpi.soft { border-top-color: #8fa88f; }
+.kpi-lbl { font-size: .65rem; text-transform: uppercase; letter-spacing: .07em; color: #999; margin-bottom: 5px; font-weight: 700; }
+.kpi-val { font-size: 1.85rem; font-weight: 800; line-height: 1.1; }
+.kpi-s { font-size: .72rem; color: #999; margin-top: 4px; }
+
+/* NARRATIVE */
+.note { border-radius: 0 9px 9px 0; padding: 13px 16px; font-size: .82rem; line-height: 1.7; margin-bottom: 14px; }
+.note.green { background: var(--gbg); border-left: 4px solid var(--g2); border: 1px solid var(--rand); border-left: 4px solid var(--g2); }
+.note.warn  { background: #fdf6ee; border: 1px solid #f5dfc0; border-left: 4px solid var(--oranje); }
+.note.alert { background: #fdf2f2; border: 1px solid #f5c6c6; border-left: 4px solid var(--rood); }
+.note strong { color: var(--g1); }
+.note.warn strong { color: #7a3c00; }
+.note.alert strong { color: #7a1010; }
+
+/* GRIDS */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.g31 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+/* ════ CHARTS — pure CSS/SVG ════ */
+
+/* BAR CHART */
+.barchart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding-top: 10px; }
+.barchart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.barchart .bar { width: 100%; border-radius: 4px 4px 0 0; transition: opacity .2s; min-height: 3px; }
+.barchart .bar:hover { opacity: .8; }
+.barchart .lbl { font-size: .62rem; color: #888; text-align: center; white-space: nowrap; margin-top: 4px; }
+.barchart .val { font-size: .65rem; font-weight: 700; color: var(--tekst); }
+
+/* LINE CHART SVG */
+.linechart-wrap { overflow: visible; }
+
+/* HORIZONTAL BAR */
+.hbar-list { display: flex; flex-direction: column; gap: 9px; }
+.hbar-row { display: flex; align-items: center; gap: 8px; }
+.hbar-lbl { font-size: .74rem; width: 68px; flex-shrink: 0; color: var(--tekst); text-align: right; }
+.hbar-lbl.wide { width: 120px; }
+.hbar-track { flex: 1; background: #f0f5f0; border-radius: 4px; height: 14px; overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 4px; background: var(--g2); transition: width .4s; }
+.hbar-fill.dark { background: var(--g1); }
+.hbar-fill.light { background: var(--g3); }
+.hbar-fill.red { background: var(--rood); }
+.hbar-fill.ora { background: var(--oranje); }
+.hbar-num { font-size: .7rem; font-weight: 700; width: 52px; flex-shrink: 0; color: var(--sub); }
+
+/* TABLES */
+.tbl { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.tbl thead tr { background: var(--gbg); }
+.tbl th { padding: 8px 10px; text-align: left; font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--g1); border-bottom: 2px solid var(--rand); }
+.tbl td { padding: 8px 10px; border-bottom: 1px solid #f0f5f0; vertical-align: middle; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: #fafff9; }
+.fw { font-weight: 600; }
+
+/* TAG */
+.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .67rem; font-weight: 700; }
+.tag.g  { background: #d4edda; color: #145a24; }
+.tag.o  { background: #fde8cc; color: #7a3c00; }
+.tag.r  { background: #fad7d7; color: #7a1010; }
+.tag.gr { background: #e8e8e8; color: #555; }
+.tag.b  { background: #d0e8f5; color: #0a3d5c; }
+
+/* MINIBAR in table */
+.mbar-wrap { display: flex; align-items: center; gap: 7px; }
+.mbar { height: 8px; border-radius: 4px; background: var(--g2); }
+.mbar.dk { background: var(--g1); }
+.mpct { font-size: .68rem; color: #aaa; }
+
+/* INSIGHT GRID */
+.ins-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
+.ins { background: white; border-radius: 9px; padding: 15px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border-top: 3px solid #ccc; }
+.ins.r { border-top-color: var(--rood); }
+.ins.o { border-top-color: var(--oranje); }
+.ins.g { border-top-color: var(--g2); }
+.ins.b { border-top-color: var(--blauw); }
+.ins h4 { font-size: .78rem; font-weight: 700; margin-bottom: 6px; }
+.ins p { font-size: .75rem; color: var(--sub); line-height: 1.6; }
+
+/* DIALOOG */
+.dial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.dial { background: white; border-radius: 9px; padding: 16px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.06); border-left: 5px solid var(--g2); }
+.dial.r { border-left-color: var(--rood); }
+.dial.o { border-left-color: var(--oranje); }
+.dial.b { border-left-color: var(--blauw); }
+.dial h4 { font-size: .84rem; font-weight: 700; margin-bottom: 7px; }
+.dial ul { margin: 6px 0 0 15px; }
+.dial li { font-size: .76rem; color: var(--sub); line-height: 1.7; }
+.dial .vraag { font-size: .74rem; color: #999; font-style: italic; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+
+/* STRATEGY TABLE */
+.stbl { width: 100%; border-collapse: collapse; font-size: .79rem; }
+.stbl thead tr { background: var(--gbg); }
+.stbl th { padding: 9px 12px; text-align: left; font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--g1); border-bottom: 2px solid var(--rand); }
+.stbl td { padding: 10px 12px; border-bottom: 1px solid #f0f5f0; vertical-align: top; }
+.stbl tr:last-child td { border-bottom: none; }
+.stbl .ev { font-size: .74rem; color: var(--sub); line-height: 1.5; margin-top: 3px; }
+
+/* CENTRAL QUESTION */
+.cq { background: var(--gbg); border: 1px solid var(--rand); border-left: 5px solid var(--g1); border-radius: 0 10px 10px 0; padding: 18px 20px; font-size: .86rem; line-height: 1.75; }
+.cq strong { color: var(--g1); }
+
+footer { text-align: center; padding: 18px; font-size: .68rem; color: #bbb; border-top: 1px solid #dde8dd; background: white; margin-top: 10px; }
+
+@media (max-width: 800px) {
+  .kpi-row { grid-template-columns: repeat(2,1fr); }
+  .g2, .g31, .ins-grid, .dial-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <h1>De Makerij Geleen</h1>
+      <div class="sub">Stadslabs Sittard-Geleen · Inzichtendashboard kassa &amp; prestaties</div>
+    </div>
+    <div class="badge">Okt 2025 – 22 mei 2026 · Cirquly kasdata</div>
+  </div>
+  <div class="hdr-intro">
+    Dit dashboard vertelt het verhaal van de eerste zeven maanden van De Makerij. Niet alleen de cijfers — maar wat ze zeggen over het <strong>model</strong>, het <strong>makersnetwerk</strong>, en wat er nodig is om dit experiment om te zetten in iets duurzaams. Het is een basis voor gesprek, geen eindoordeel.
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ══ SECTIE 1 – VIER GETALLEN ══ -->
+<section>
+  <div class="sec-head"><h2>Het verhaal in vier getallen</h2><p>Zeven maanden data, oktober 2025 t/m 22 mei 2026</p></div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-lbl">Totale verkoopopbrengst</div>
+      <div class="kpi-val">€ 9.702</div>
+      <div class="kpi-s">Consignatie (€9.529) + horeca (€280) − retouren</div>
+    </div>
+    <div class="kpi warn">
+      <div class="kpi-lbl">Verkopers mei 2026 / 30+ overeenkomsten</div>
+      <div class="kpi-val" style="color:var(--oranje)">7</div>
+      <div class="kpi-s">Was 31 in december. Dat is −77% in vijf maanden.</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Netto winkelmarge</div>
+      <div class="kpi-val">€ 2.484</div>
+      <div class="kpi-s">Wat De Makerij zelf overhoudt na uitbetaling</div>
+    </div>
+    <div class="kpi soft">
+      <div class="kpi-lbl">Uitbetaald aan makers</div>
+      <div class="kpi-val">€ 6.302</div>
+      <div class="kpi-s">68 cent van elke euro gaat naar de inbrenger</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTIE 2 – OMZETLIJN ══ -->
+<section>
+  <div class="sec-head"><h2>Omzetlijn — het seizoensverhaal</h2><p>Van vliegende start naar kwetsbaar plateau</p></div>
+  <div class="note green">
+    De Makerij opende in oktober 2025 met €960 omzet — een bescheiden maar hoopvol begin. November groeide naar €2.729. December explodeerde naar <strong>€4.319</strong>: de absolute piek, gedragen door kerststemming, 16 actieve makers en events. Daarna volgde de realiteit: januari daalde naar €2.577, februari zakte naar het dieptepunt van <strong>€1.171</strong> — minder dan een derde van de kerstpiek. Sindsdien is er een licht herstel, maar dat herstel is smal en mei trekt nog maar €927.
+  </div>
+  <div class="g31">
+    <div class="card">
+      <div class="card-title">Omzet per maand (€)</div>
+      <div class="card-sub">Donkergroen = piek december · rood = dieptepunt · oranje = huidige maand</div>
+      <!-- Stacked bar chart pure CSS -->
+      <div style="position:relative;">
+        <!-- Y-axis labels -->
+        <div style="display:flex;gap:6px;align-items:flex-end;">
+          <div style="display:flex;flex-direction:column;justify-content:space-between;height:190px;padding:4px 0;text-align:right;font-size:.62rem;color:#bbb;flex-shrink:0;width:36px;">
+            <span>€4.500</span><span>€3.000</span><span>€1.500</span><span>€0</span>
+          </div>
+          <div style="flex:1;position:relative;">
+            <!-- grid lines -->
+            <div style="position:absolute;left:0;right:0;top:0;height:1px;background:#f0f0f0;"></div>
+            <div style="position:absolute;left:0;right:0;top:33%;height:1px;background:#f0f0f0;"></div>
+            <div style="position:absolute;left:0;right:0;top:67%;height:1px;background:#f0f0f0;"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:1px;background:#e0e8e0;"></div>
+            <div class="barchart" style="height:190px;">
+              <!-- max = 4319, height% = val/4500*100 -->
+              <div class="col"><div class="val">€960</div><div class="bar" style="height:21%;background:var(--g2);"></div><div class="lbl">Okt<br>'25</div></div>
+              <div class="col"><div class="val">€2.729</div><div class="bar" style="height:61%;background:var(--g2);"></div><div class="lbl">Nov<br>'25</div></div>
+              <div class="col"><div class="val">€4.319</div><div class="bar" style="height:96%;background:var(--g1);"></div><div class="lbl">Dec<br>'25</div></div>
+              <div class="col"><div class="val">€2.577</div><div class="bar" style="height:57%;background:var(--g2);"></div><div class="lbl">Jan<br>'26</div></div>
+              <div class="col"><div class="val">€1.171</div><div class="bar" style="height:26%;background:var(--rood);"></div><div class="lbl">Feb<br>'26</div></div>
+              <div class="col"><div class="val">€1.432</div><div class="bar" style="height:32%;background:var(--g2);"></div><div class="lbl">Mrt<br>'26</div></div>
+              <div class="col"><div class="val">€1.587</div><div class="bar" style="height:35%;background:var(--g2);"></div><div class="lbl">Apr<br>'26</div></div>
+              <div class="col"><div class="val">€927</div><div class="bar" style="height:21%;background:var(--oranje);"></div><div class="lbl">Mei<br>'26*</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Omzetverdeling</div>
+      <div class="card-sub">Totale periode naar type</div>
+      <div style="display:flex;flex-direction:column;gap:11px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px;"><span>Consignatie</span><strong>€ 9.529</strong></div>
+          <div style="background:#eef5ee;border-radius:4px;height:10px;overflow:hidden;"><div style="background:var(--g2);width:97%;height:100%;border-radius:4px;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px;"><span>Horeca</span><strong>€ 280</strong></div>
+          <div style="background:#eef5ee;border-radius:4px;height:10px;overflow:hidden;"><div style="background:var(--g2);width:3%;height:100%;border-radius:4px;"></div></div>
+        </div>
+        <div style="border-top:1px solid #eee;padding-top:10px;">
+          <div style="font-size:.7rem;color:#aaa;margin-bottom:6px;">Winkel vs makers split</div>
+          <div style="display:flex;border-radius:6px;overflow:hidden;height:24px;font-size:.68rem;font-weight:700;">
+            <div style="background:var(--g1);width:32%;display:flex;align-items:center;justify-content:center;color:white;">32% winkel</div>
+            <div style="background:var(--g3);width:68%;display:flex;align-items:center;justify-content:center;color:#1a2a1a;">68% makers</div>
+          </div>
+          <div style="font-size:.68rem;color:#bbb;margin-top:5px;">€2.484 winkel · €6.302 makers · €542 BTW</div>
+        </div>
+        <div style="border-top:1px solid #eee;padding-top:10px;">
+          <div style="font-size:.7rem;color:#aaa;margin-bottom:6px;">Betaalmethode</div>
+          <div style="display:flex;border-radius:6px;overflow:hidden;height:20px;font-size:.67rem;font-weight:700;margin-bottom:4px;">
+            <div style="background:var(--g1);width:78%;display:flex;align-items:center;justify-content:center;color:white;">💳 78% kaart</div>
+            <div style="background:var(--g4);width:22%;display:flex;align-items:center;justify-content:center;color:#333;">22%</div>
+          </div>
+          <div style="font-size:.7rem;color:#aaa;">Kaart €7.510 · Cash €2.080</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTIE 3 – MAKERSNETWERK ══ -->
+<section>
+  <div class="sec-head"><h2>Het makersnetwerk — de kern van het probleem</h2><p>Wie verkoopt er nog, en wat verdienen ze?</p></div>
+  <div class="note alert">
+    Dit is het meest urgente signaal in de data. In december <em>verkochten</em> er <strong>31 makers</strong> iets — elk met producten in de winkel. In mei zijn dat er nog maar <strong>7</strong>. Dat is geen naturel verloop. Dat is een structureel probleem met het model. En het contrast is nog scherper als je weet dat er <strong>30+ consignatieovereenkomsten</strong> lopen: veel makers hebben hun producten in de winkel staan maar verkopen er maandenlang niets. Maken stoppen niet alleen — ze verdwijnen stilletjes uit de omzetcijfers terwijl hun spullen er nog liggen.
+  </div>
+  <div class="g31" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-title">Actieve makers per maand</div>
+      <div class="card-sub">Unieke makers met minstens één verkoop die maand</div>
+      <!-- Line chart as SVG — gecorrigeerde data -->
+      <!-- Y scale: max=35, y = 138 - val*3.66, gridlines at 0,10,20,30 -->
+      <svg viewBox="0 0 480 170" class="linechart-wrap" style="width:100%;height:170px;">
+        <line x1="40" y1="28"  x2="470" y2="28"  stroke="#f0f0f0" stroke-width="1"/>
+        <line x1="40" y1="65"  x2="470" y2="65"  stroke="#f0f0f0" stroke-width="1"/>
+        <line x1="40" y1="101" x2="470" y2="101" stroke="#f0f0f0" stroke-width="1"/>
+        <line x1="40" y1="138" x2="470" y2="138" stroke="#e0e8e0" stroke-width="1"/>
+        <text x="32" y="141" text-anchor="end" font-size="9" fill="#bbb">0</text>
+        <text x="32" y="104" text-anchor="end" font-size="9" fill="#bbb">10</text>
+        <text x="32" y="68"  text-anchor="end" font-size="9" fill="#bbb">20</text>
+        <text x="32" y="31"  text-anchor="end" font-size="9" fill="#bbb">30</text>
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4a9042" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#4a9042" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Points: Oct14→87, Nov23→54, Dec31→25, Jan16→79, Feb10→101, Mar19→69, Apr19→69, May7→112 -->
+        <polygon points="60,87 116,54 172,25 228,79 284,101 340,69 396,69 452,112 452,138 60,138" fill="url(#lg)"/>
+        <polyline points="60,87 116,54 172,25 228,79 284,101 340,69 396,69 452,112" fill="none" stroke="#4a9042" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="60"  cy="87"  r="5" fill="#4a9042"/>
+        <circle cx="116" cy="54"  r="5" fill="#4a9042"/>
+        <circle cx="172" cy="25"  r="7" fill="#2d6b27"/>
+        <circle cx="228" cy="79"  r="5" fill="#4a9042"/>
+        <circle cx="284" cy="101" r="6" fill="#b02a2a"/>
+        <circle cx="340" cy="69"  r="5" fill="#4a9042"/>
+        <circle cx="396" cy="69"  r="5" fill="#4a9042"/>
+        <circle cx="452" cy="112" r="7" fill="#b02a2a"/>
+        <text x="60"  y="80"  text-anchor="middle" font-size="9" fill="#2d6b27">14</text>
+        <text x="116" y="47"  text-anchor="middle" font-size="9" fill="#888">23</text>
+        <text x="172" y="17"  text-anchor="middle" font-size="9" font-weight="bold" fill="#2d6b27">31🎄</text>
+        <text x="228" y="72"  text-anchor="middle" font-size="9" fill="#888">16</text>
+        <text x="284" y="94"  text-anchor="middle" font-size="9" font-weight="bold" fill="#b02a2a">10</text>
+        <text x="340" y="62"  text-anchor="middle" font-size="9" fill="#888">19</text>
+        <text x="396" y="62"  text-anchor="middle" font-size="9" fill="#888">19</text>
+        <text x="452" y="105" text-anchor="middle" font-size="9" font-weight="bold" fill="#b02a2a">7⚠️</text>
+        <text x="60"  y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Okt'25</text>
+        <text x="116" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Nov</text>
+        <text x="172" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Dec</text>
+        <text x="228" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Jan'26</text>
+        <text x="284" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Feb</text>
+        <text x="340" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Mrt</text>
+        <text x="396" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Apr</text>
+        <text x="452" y="155" text-anchor="middle" font-size="8.5" fill="#aaa">Mei</text>
+      </svg>
+    </div>
+    <div class="card">
+      <div class="card-title">Makers per maand</div>
+      <div class="card-sub">Beweging &amp; trend</div>
+      <table class="tbl">
+        <thead><tr><th>Maand</th><th># verkopers</th><th>Trend</th></tr></thead>
+        <tbody>
+          <tr><td>Okt '25</td><td>14</td><td><span class="tag b">start</span></td></tr>
+          <tr><td>Nov '25</td><td>23</td><td><span class="tag g">+9</span></td></tr>
+          <tr><td>Dec '25</td><td class="fw">31</td><td><span class="tag g">+8 🎄</span></td></tr>
+          <tr><td>Jan '26</td><td>16</td><td><span class="tag r">−15</span></td></tr>
+          <tr><td>Feb '26</td><td>10</td><td><span class="tag r">−6</span></td></tr>
+          <tr><td>Mrt '26</td><td>19</td><td><span class="tag g">+9</span></td></tr>
+          <tr><td>Apr '26</td><td>19</td><td><span class="tag gr">→ 0</span></td></tr>
+          <tr><td>Mei '26</td><td class="fw" style="color:var(--rood)">7</td><td><span class="tag r">−12 ⚠️</span></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px;padding:8px 11px;background:#fdf6ee;border-radius:7px;font-size:.72rem;color:#7a3c00;border-left:3px solid var(--oranje)">
+        30+ lopende overeenkomsten. Dit zijn <em>verkopers</em> — makers die die maand daadwerkelijk iets verkochten. De rest heeft producten in de winkel maar geen omzet.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Top makers — omzetbijdrage (totale periode, gecorrigeerd)</div>
+    <div class="card-sub">Gecorrigeerde data — namen waren inconsistent ingevoerd in Cirquly (bijv. "Nancy-Broche", "Nancy / Kaart", "Kaarten Nancy" = allemaal Nancy). Top 2 samen = 33% van alle omzet.</div>
+    <table class="tbl">
+      <thead>
+        <tr><th>#</th><th>Maker</th><th>Items</th><th>Omzet</th><th>Uitbetaald</th><th>Gem./mnd</th><th>Actief (mnd)</th><th style="width:150px">Relatief (max=Rik)</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td style="color:#bbb;font-size:.7rem">1</td><td class="fw">Rik</td><td>224</td><td><strong>€ 1.980</strong></td><td>€ 1.311</td><td>€ 248</td><td>8/8</td><td><div class="mbar-wrap"><div class="mbar dk" style="width:148px"></div><span class="mpct">21%</span></div></td><td><span class="tag o">⚠️ risico</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">2</td><td class="fw">Nancy</td><td>140</td><td><strong>€ 1.162</strong></td><td>€ 769</td><td>€ 145</td><td>8/8</td><td><div class="mbar-wrap"><div class="mbar dk" style="width:87px"></div><span class="mpct">12%</span></div></td><td><span class="tag g">actief</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">3</td><td class="fw">Marion</td><td>17</td><td><strong>€ 605</strong></td><td>€ 400</td><td>€ 121</td><td>5/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:45px"></div><span class="mpct">6%</span></div></td><td><span class="tag o">gestopt mrt</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">4</td><td class="fw">Vivian</td><td>66</td><td><strong>€ 598</strong></td><td>€ 395</td><td>€ 85</td><td>7/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:45px"></div><span class="mpct">6%</span></div></td><td><span class="tag g">actief</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">5</td><td class="fw">Marij</td><td>28</td><td><strong>€ 457</strong></td><td>€ 302</td><td>€ 65</td><td>7/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:34px"></div><span class="mpct">5%</span></div></td><td><span class="tag o">gestopt apr</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">6</td><td class="fw">Isja</td><td>37</td><td><strong>€ 453</strong></td><td>€ 300</td><td>€ 76</td><td>6/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:34px"></div><span class="mpct">5%</span></div></td><td><span class="tag g">actief</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">7</td><td class="fw">Milyah</td><td>8</td><td><strong>€ 392</strong></td><td>€ 260</td><td>€ 98</td><td>4/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:29px"></div><span class="mpct">4%</span></div></td><td><span class="tag r">gestopt jan</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">8</td><td class="fw">Leff</td><td>3</td><td><strong>€ 333</strong></td><td>€ 220</td><td>—</td><td>1/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:25px"></div><span class="mpct">4%</span></div></td><td><span class="tag r">alleen dec</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">9</td><td class="fw">Rilana</td><td>16</td><td><strong>€ 214</strong></td><td>€ 141</td><td>€ 43</td><td>5/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:16px"></div><span class="mpct">2%</span></div></td><td><span class="tag g">actief</span></td></tr>
+        <tr><td style="color:#bbb;font-size:.7rem">10</td><td class="fw">Klimmer</td><td>3</td><td><strong>€ 195</strong></td><td>€ 129</td><td>—</td><td>2/8</td><td><div class="mbar-wrap"><div class="mbar" style="width:15px"></div><span class="mpct">2%</span></div></td><td><span class="tag r">gestopt dec</span></td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:11px;padding:9px 12px;background:#fdf6ee;border-radius:7px;font-size:.75rem;color:#7a3c00;border-left:4px solid var(--oranje)">
+      <strong>Datakwaliteit:</strong> Cirquly registreert maker-namen inconsistent. "Nancy - Ketting", "Nancy-Broche" en "Kaarten Nancy" zijn hetzelfde. Na correctie verdubbelde Nancy's omzet van €541 naar €1.162. Er blijft nog ~€811 ontkoppeld aan maker. Dit vraagt om naamconventie in het kassasysteem.
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTIE 4 – WANNEER ══ -->
+<section>
+  <div class="sec-head"><h2>Wanneer wordt er gekocht?</h2><p>Drukte vs. leegte — consequenties voor bezetting en openingstijden</p></div>
+  <div class="note warn">
+    De winkel heeft een <strong>uitgesproken ritme</strong>: vrijdag en zaterdag dragen samen <strong>82% van de totale weekomzet</strong>. Maandag, woensdag en zondag brengen samen €3.289 op — verspreid over drie dagen. Dat heeft directe consequenties voor hoe je bezetting organiseert. Als een maker op maandag moet instaan terwijl die dag €115/maand opbrengt, is de motivatie om dat vol te houden nul.
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Omzet per weekdag (totale periode)</div>
+      <div class="card-sub">Vrijdag + zaterdag = 82% van alle weekomzet</div>
+      <!-- Horizontal bars -->
+      <div class="hbar-list" style="margin-top:8px;">
+        <div class="hbar-row">
+          <div class="hbar-lbl">Zaterdag</div>
+          <div class="hbar-track"><div class="hbar-fill dark" style="width:100%"></div></div>
+          <div class="hbar-num"><strong>€ 7.918</strong></div>
+          <span class="tag g">52%</span>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-lbl">Vrijdag</div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:57%"></div></div>
+          <div class="hbar-num">€ 4.496</div>
+          <span class="tag g">30%</span>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-lbl">Woensdag</div>
+          <div class="hbar-track"><div class="hbar-fill light" style="width:22%"></div></div>
+          <div class="hbar-num">€ 1.782</div>
+          <span class="tag gr">12%</span>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-lbl">Maandag</div>
+          <div class="hbar-track"><div class="hbar-fill light" style="width:10%"></div></div>
+          <div class="hbar-num">€ 805</div>
+          <span class="tag o">5%</span>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-lbl">Zondag</div>
+          <div class="hbar-track"><div class="hbar-fill light" style="width:9%"></div></div>
+          <div class="hbar-num">€ 702</div>
+          <span class="tag o">5%</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:9px 11px;background:var(--gbg);border-radius:7px;font-size:.74rem;color:#2d5a27;border-left:3px solid var(--g2)">
+        Maandag: gemiddeld <strong>€19 per openingsdag</strong> over 7 maanden. Dat is minder dan een kopje koffie per uur. Als daar een vrijwilliger voor moet staan: die kosten wegen niet op.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Dagomzet in context</div>
+      <div class="card-sub">Wat het per maand betekent</div>
+      <table class="tbl">
+        <thead><tr><th>Dag</th><th>Totaal</th><th>Gem./mnd</th><th>Items</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Zaterdag</strong></td><td><strong>€ 7.918</strong></td><td>€ 1.131</td><td>641</td></tr>
+          <tr><td><strong>Vrijdag</strong></td><td><strong>€ 4.496</strong></td><td>€ 642</td><td>218</td></tr>
+          <tr><td>Woensdag</td><td>€ 1.782</td><td>€ 255</td><td>145</td></tr>
+          <tr><td>Maandag</td><td>€ 805</td><td>€ 115</td><td>43</td></tr>
+          <tr><td>Zondag</td><td>€ 702</td><td>€ 100</td><td>58</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;">
+        <div style="font-size:.7rem;color:#aaa;margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Gemiddeld per transactie (kassamoment)</div>
+        <div style="font-size:.82rem;">Gemiddelde kassabon: <strong>€ 113</strong></div>
+        <div style="font-size:.82rem;margin-top:3px;">Mediaan kassabon: <strong>€ 71</strong></div>
+        <div style="font-size:.72rem;color:#aaa;margin-top:5px;">Sommige transacties zijn uitbetalingen aan makers of voorraadcorrecties — dit is een indicatie.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTIE 5 – PRODUCTEN ══ -->
+<section>
+  <div class="sec-head"><h2>Wat wordt er gekocht?</h2><p>Producten, prijsklassen en wat bezoekers aanspreekt</p></div>
+  <div class="note green">
+    <strong>Goedkope impulsaankopen domineren.</strong> De top-12 producten zijn bijna allemaal artikelen onder €15. Rik's 3D-prints (€3–€25), Nancy's broches, kunstkaarten: laagdrempelig, makkelijk cadeauartikel. Duurdere stukken (schilderijen €35–€150) verkopen zeldzamer maar genereren meer per transactie. Er is bewuste keuze nodig in de productmix als je het gemiddeld aankoopaandeel wil verhogen.
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top 12 bestverkochte producten (op aantal)</div>
+      <div class="card-sub">Donkergroen = Rik's 3D items — één maker, 5 van de top 12</div>
+      <div class="hbar-list" style="margin-top:6px;">
+        <div class="hbar-row"><div class="hbar-lbl wide">3D €5 item</div><div class="hbar-track"><div class="hbar-fill dark" style="width:100%"></div></div><div class="hbar-num">59×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">3D €3 item</div><div class="hbar-track"><div class="hbar-fill dark" style="width:88%"></div></div><div class="hbar-num">52×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">3D €10 item</div><div class="hbar-track"><div class="hbar-fill dark" style="width:64%"></div></div><div class="hbar-num">38×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Broche (Nancy)</div><div class="hbar-track"><div class="hbar-fill" style="width:59%"></div></div><div class="hbar-num">35×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Kunstkaart</div><div class="hbar-track"><div class="hbar-fill" style="width:49%"></div></div><div class="hbar-num">29×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Tegeltje (Vivian)</div><div class="hbar-track"><div class="hbar-fill" style="width:32%"></div></div><div class="hbar-num">19×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Sleutelhanger</div><div class="hbar-track"><div class="hbar-fill" style="width:29%"></div></div><div class="hbar-num">17×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">3D €15 item</div><div class="hbar-track"><div class="hbar-fill dark" style="width:25%"></div></div><div class="hbar-num">15×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Kaarten Nancy</div><div class="hbar-track"><div class="hbar-fill" style="width:25%"></div></div><div class="hbar-num">15×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Knutseltafel</div><div class="hbar-track"><div class="hbar-fill light" style="width:22%"></div></div><div class="hbar-num">13×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Ketting</div><div class="hbar-track"><div class="hbar-fill" style="width:19%"></div></div><div class="hbar-num">11×</div></div>
+        <div class="hbar-row"><div class="hbar-lbl wide">Armband</div><div class="hbar-track"><div class="hbar-fill" style="width:19%"></div></div><div class="hbar-num">11×</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Productcategorieën</div>
+      <div class="card-sub">Analyse van wat werkt</div>
+      <table class="tbl">
+        <thead><tr><th>Categorie</th><th>Prijsrange</th><th>Aantrekking</th></tr></thead>
+        <tbody>
+          <tr><td class="fw">3D-prints (Rik)</td><td>€3 – €25</td><td><span class="tag g">⬆ hoog</span></td></tr>
+          <tr><td class="fw">Sieraden</td><td>€6 – €20</td><td><span class="tag g">⬆ hoog</span></td></tr>
+          <tr><td class="fw">Kaarten</td><td>€2,50 – €5</td><td><span class="tag g">⬆ laagdrempelig</span></td></tr>
+          <tr><td class="fw">Ceramiek/tegels</td><td>€10 – €20</td><td><span class="tag b">→ middel</span></td></tr>
+          <tr><td class="fw">Kunst/schilderijen</td><td>€35 – €150</td><td><span class="tag gr">⬇ bewust</span></td></tr>
+          <tr><td class="fw">Knutseltafel</td><td>€2,50</td><td><span class="tag b">→ beleving</span></td></tr>
+          <tr><td class="fw">Horeca</td><td>gem. €2,65</td><td><span class="tag o">onderbenut</span></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;padding:9px 11px;background:var(--gbg);border-radius:7px;font-size:.74rem;color:#2d5a27">
+        <strong>Knutseltafel staat in de top 15.</strong> Bezoekers betalen €2,50 om iets te maken. Dat is geen bijzaak — dat is het concept van De Makerij in miniatuur. Er is vraag naar beleving, niet alleen naar kopen.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTIE 6 – INZICHTEN ══ -->
+<section>
+  <div class="sec-head"><h2>Zes inzichten die tellen</h2><p>Wat de data vertelt, in gewone taal</p></div>
+  <div class="ins-grid">
+    <div class="ins r">
+      <h4>⚠️ Rik + Nancy = 33% van alle omzet</h4>
+      <p>Twee makers. Rik 21%, Nancy 12% (na datacorrectie bijna dubbel zo hoog als eerder gemeten). Vijf van de top-12 producten zijn Rik's 3D-prints. Als één van hen wegvalt is dat direct zichtbaar. Twee ankers voor 33% is te smal.</p>
+    </div>
+    <div class="ins r">
+      <h4>⚠️ 31 verkopers in december → 7 in mei</h4>
+      <p>De kerstpiek van 31 actieve verkopers was deels tijdelijk enthousiasme. Het structurele niveau lijkt 7–16. Maar het echt zorgelijke: 30+ lopende overeenkomsten, en toch verkoopt het merendeel maandenlang niets. Stille uitval is onzichtbaarder dan vertrek.</p>
+    </div>
+    <div class="ins o">
+      <h4>📅 Stille dagen kosten meer dan ze opbrengen</h4>
+      <p>Maandag brengt €19 op per openingsdag. Als daar een maker of vrijwilliger voor moet staan, is de psychologische drempel enorm. Dit draagt rechtstreeks bij aan afhaken — niet de makers zijn het probleem, het rooster is het probleem.</p>
+    </div>
+    <div class="ins o">
+      <h4>📉 Februari toont het basisniveau zonder stimulans</h4>
+      <p>Geen kerst, geen events, minder makers. Resultaat: €1.171. Dat is wat het model doet zonder extra energie. Voor een duurzaam experiment moet dit basisniveau omhoog — niet alleen de pieken hoger, maar de dalen minder diep.</p>
+    </div>
+    <div class="ins g">
+      <h4>✅ Het financieel model is eerlijk — maar het volume is te laag</h4>
+      <p>68% naar makers is genereus. Het probleem is niet de verdeling, het is de taart. Een gemiddelde maker verdient €24/maand. Bij dat bedrag verdwijnt de motivatie. Het model klopt — de schaal klopt nog niet.</p>
+    </div>
+    <div class="ins b">
+      <h4>💡 Bezoekers willen verblijven — dat wordt niet benut</h4>
+      <p>Knutseltafel in de top-15. 106 horeca-transacties. Bezoekers hangen graag, maar er is geen structureel aanbod dat dat verdiept: geen workshopreeks, geen terugkerende reden. De beleving is er in aanleg — ze is alleen niet gebouwd.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTIE 7 – STRATEGIE ══ -->
+<section>
+  <div class="sec-head"><h2>Koppeling met Stadslabs-doelstellingen</h2><p>Omgevingsvisie Sittard-Geleen 2025–2040</p></div>
+  <div class="card">
+    <table class="stbl">
+      <thead><tr><th style="width:22%">Doelstelling</th><th style="width:30%">Wat de data zegt</th><th style="width:28%">Knelpunt</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="fw">Levendige invulling leegstand</td>
+          <td><div class="ev">Winkel is open, bezoekers komen dagelijks. De plek werkt als ontmoetingspunt.</div></td>
+          <td><div class="ev">Geen — dit lukt.</div></td>
+          <td><span class="tag g">✅ Op schema</span></td>
+        </tr>
+        <tr>
+          <td class="fw">Podium voor lokale makers</td>
+          <td><div class="ev">68% naar makers — model klopt. Maar netwerk krimpt van 16 naar 5 in vijf maanden.</div></td>
+          <td><div class="ev">Dubbele belasting (verkopen + vrijwilligeren) bij te laag maandinkomen.</div></td>
+          <td><span class="tag r">⚠️ Kritisch</span></td>
+        </tr>
+        <tr>
+          <td class="fw">Toegankelijke cultuur</td>
+          <td><div class="ev">Laagdrempelige producten domineren. Workshops via Eventbrite.</div></td>
+          <td><div class="ev">Geen structureel workshopprogramma zichtbaar in data. Losse events, geen ritme.</div></td>
+          <td><span class="tag o">⚡ Aandacht</span></td>
+        </tr>
+        <tr>
+          <td class="fw">Circulaire lokale economie</td>
+          <td><div class="ev">€6.302 blijft in de lokale economie bij Geleen-makers. Dat is reëel effect.</div></td>
+          <td><div class="ev">Huidig gem. €1.386/mnd. Duurzaam model vereist min. €3.000–4.000/mnd.</div></td>
+          <td><span class="tag o">⚡ Aandacht</span></td>
+        </tr>
+        <tr>
+          <td class="fw">Klein beginnen, snel leren</td>
+          <td><div class="ev">Data geeft duidelijke iteratiesignalen. Instrumentarium klopt.</div></td>
+          <td><div class="ev">Leren zonder bijsturen is geen methodiek. Vraag is: wat wordt concreet aangepast?</div></td>
+          <td><span class="tag g">✅ Op schema</span></td>
+        </tr>
+        <tr>
+          <td class="fw">Sociale ontmoeting &amp; cohesie</td>
+          <td><div class="ev">Horeca-interacties, knutseltafel, zaterdagpubliek — het sociale weefsel is aanwezig.</div></td>
+          <td><div class="ev">Als makers wegvallen verdwijnt ook de ontmoetingsfunctie. Sociale waarde hangt aan makersbezetting.</div></td>
+          <td><span class="tag o">⚡ Aandacht</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ SECTIE 8 – DIALOOG ══ -->
+<section>
+  <div class="sec-head"><h2>Basis voor dialoog — vier gespreklijnen</h2><p>Concrete richtingen, open vragen, prioriteiten voor de meeting</p></div>
+  <div class="note green">
+    De data wijst in één richting: het experiment werkt als <em>concept</em>, maar niet als <em>structuur</em>. De winkel bewijst dat er vraag is. Makers bewijzen dat er aanbod kan zijn. Maar het model dat ze bij elkaar houdt is op dit moment niet duurzaam. Vier gespreklijnen.
+  </div>
+  <div class="dial-grid">
+    <div class="dial r">
+      <h4>🔴 1. Het makersmodel: eerlijk maar niet leefbaar</h4>
+      <ul>
+        <li>68% naar makers = eerlijk. Maar €24/maand gemiddeld is geen reden om actief te blijven.</li>
+        <li>Vrijwilligersplicht bovenop lage opbrengst = dubbele drempel. Dat is waarom mensen afhaken.</li>
+        <li>Mogelijke oplossing: twee tracks. <strong>Actieve makers</strong> (vrijwilligen, betere plek, promo, event-prioriteit). <strong>Passieve makers</strong> (alleen producten inbrengen, geen verplichte bezetting).</li>
+        <li>Of: bezetting professionaliseren met een betaalde coördinator + makers alleen als maker.</li>
+      </ul>
+      <div class="vraag">❓ Wat is het minimale dat we van een maker mogen verwachten — en wat geven we daarvoor terug?</div>
+    </div>
+    <div class="dial o">
+      <h4>🟠 2. Zichtbaarheid &amp; communicatie: de stille winkel</h4>
+      <ul>
+        <li>De Facebook-pagina bestaat, maar posts bereiken voornamelijk wie al weet dat De Makerij er is.</li>
+        <li>Geen weekritme in communicatie: geen "dit weekend te koop", geen "nieuwe maker", geen productvideo.</li>
+        <li>Workshops op Eventbrite staan los van het winkelverhaal — geen doorlopende verhaallijn.</li>
+        <li>Oplossing: vaste weekpost elke donderdag. Elke nieuwe maker = aankondiging. Instagram Reels van makers aan het werk. Google Profiel activeren (veel lokale zoekopdrachten).</li>
+      </ul>
+      <div class="vraag">❓ Wie is verantwoordelijk voor communicatie — en hoeveel uur per week kost dat realistisch?</div>
+    </div>
+    <div class="dial b">
+      <h4>🔵 3. Openingstijden &amp; bezetting: het weekend werkt</h4>
+      <ul>
+        <li>Vrijdag + zaterdag = 82% van omzet. Maandag en woensdag zijn economisch nauwelijks rendabel.</li>
+        <li>Optie A: tijdelijk maandag sluiten. Die energie op zaterdag zetten.</li>
+        <li>Optie B: maandag/woensdag als "backstage-dag" voor makers (producten brengen, etalage aanpassen) — niet als publieksdag.</li>
+        <li>Optie C: voor stille dagen specifieke doelgroep zoeken (bijv. senioren, scholen, thuiswerkers).</li>
+      </ul>
+      <div class="vraag">❓ Welke doelgroep willen we op welke dag bedienen — en is die er ook daadwerkelijk?</div>
+    </div>
+    <div class="dial">
+      <h4>🟢 4. Groeikansen: events, workshops, partners</h4>
+      <ul>
+        <li>December was bewijs: met energie en aanbod verdubbelt de omzet. Die energie was gemaakt, niet vanzelf.</li>
+        <li>Horeca heeft 106 transacties maar brengt maar €280 op. Publiek wil verblijven — geef ze meer reden.</li>
+        <li>Maandelijkse markt of themamiddag als structurele prikkel. Samenwerking met school, bibliotheek, gemeente.</li>
+        <li>Nieuwe makers werven via onderwijs (design, ambacht), via andere lokale markten, via LinkedIn en lokale media — niet alleen het eigen netwerk.</li>
+        <li>Partnermodel: bedrijf "adopteert" een maker als MVO-activiteit. Of gemeente die een productlijn ondersteunt.</li>
+      </ul>
+      <div class="vraag">❓ Wat is de éne activiteit die we de komende drie maanden structureel kunnen toevoegen?</div>
+    </div>
+  </div>
+
+  <div class="cq" style="margin-top:18px;">
+    <strong>De centrale vraag voor de meeting</strong><br><br>
+    Het model van De Makerij vraagt op dit moment meer van makers dan het teruggeeft. Dat is niet de schuld van de makers die weggaan — dat is een systeemkeuze die gemaakt is. De vraag is niet <em>"hoe houden we de huidige makers vast?"</em> maar:<br><br>
+    <strong style="font-size:1rem;">Welk model willen wij zijn?</strong><br><br>
+    Een <strong>winkel met wisselende producten</strong> (makers als leveranciers, bezetting apart geregeld) — of een <strong>community van makers</strong> (eigenaarschap, betrokkenheid, gezamenlijk bouwen)? Die twee modellen vragen een andere bezetting, andere communicatie, andere verwachtingen. En andere data om op te sturen.
+  </div>
+</section>
+
+</div>
+
+<footer>Databron: Cirquly kassasysteem · Export 22-05-2026 · Periode 01-10-2025 t/m 22-05-2026 · 1.105 transacties · Dashboard Stadslabs Sittard-Geleen</footer>
+</body>
+</html>
